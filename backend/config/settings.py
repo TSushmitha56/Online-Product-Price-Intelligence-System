@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
     'api',
 ]
 
@@ -133,7 +134,31 @@ CORS_ALLOWED_ORIGINS = [
 # Allow CORS for development (permissive)
 CORS_ALLOW_ALL_ORIGINS = False
 
+# In-Memory Cache Configuration (Fallback from Redis)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'price-compare-cache',
+    }
+}
+
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.ComparePricesPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '20/minute',
+        'user': '60/minute'
+    }
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Price Comparison API',
+    'DESCRIPTION': 'API for retrieving and comparing product prices',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }

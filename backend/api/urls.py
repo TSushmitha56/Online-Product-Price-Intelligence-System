@@ -12,4 +12,12 @@ urlpatterns = [
     
     # Product recognition endpoint
     path('recognize-product/', views.recognize_product, name='recognize_product'),
+    
+    # Cross-platform Price Comparison endpoint
+    # Cross-platform Price Comparison endpoint
+    path('price-comparison/<str:image_id>/', views.price_comparison, name='price_comparison'),
+    
+    # Generic Endpoints
+    path('compare-prices/', views.ComparePricesAPIView.as_view(), name='compare_prices'),
+    path('price-history/', views.PriceHistoryAPIView.as_view(), name='price_history'),
 ]

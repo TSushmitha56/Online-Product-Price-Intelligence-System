@@ -13,12 +13,52 @@ import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ImageUpload from './components/ImageUpload';
+import ResultsDisplay from './components/results/ResultsDisplay';
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
   const [backendStatus, setBackendStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Track the recognized product query from URL for deep linking
+  const [productQuery, setProductQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('product') || null;
+  });
+
+  // Automatically clean the URL on mount to remove the query parameter
+  // This allows the query param to temporarily exist but cleans it up after refresh.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('product')) {
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.delete('product');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
+
+  // Listen for browser back/forward navigation affecting the URL
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setProductQuery(params.get('product') || null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleProductRecognized = (query) => {
+    setProductQuery(query);
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.set('product', query);
+    window.history.pushState({}, '', newUrl);
+
+    // Smooth scroll to results
+    setTimeout(() => {
+      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
   // Check backend connectivity on component mount
   useEffect(() => {
@@ -47,12 +87,12 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-grow">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-7xl mx-auto px-4 py-12">
           {/* Backend Status Section */}
           <section className="mb-12">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-6 max-w-6xl mx-auto">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">System Status</h2>
-              
+
               {/* Backend Status Check */}
               {loading && (
                 <div className="flex items-center space-x-2 text-blue-600">
@@ -93,9 +133,17 @@ function App() {
           </section>
 
           {/* Image Upload Section */}
-          <section id="upload" className="bg-white rounded-lg shadow p-12">
-            <ImageUpload />
+          <section id="upload" className="bg-white rounded-lg shadow p-12 mb-12 max-w-6xl mx-auto">
+            <ImageUpload onProductRecognized={handleProductRecognized} />
           </section>
+
+          {/* Price Comparison Preview */}
+          {productQuery && (
+            <section id="results" className="bg-white rounded-lg shadow p-4 sm:p-8">
+              <ResultsDisplay productName={productQuery} />
+            </section>
+          )}
+
         </div>
       </main>
 

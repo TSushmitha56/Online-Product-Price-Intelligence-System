@@ -17,6 +17,18 @@ from .utils import ImageValidator, ImageStorage
 from image_preprocessing import preprocess_image
 import os
 from recognition.predictor import predict_product_from_path
+from comparison.aggregator import aggregate_prices
+from scrapers import search_all_platforms
+from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
+from django.core.cache import cache
+import logging
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from db.models import Product, Price
+from db.connection import SessionLocal
+from .pagination import ComparePricesPagination
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
@@ -245,3 +257,210 @@ def recognize_product(request):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['GET'])
+def price_comparison(request, image_id):
+    """
+    Combines recognition + web scraping + pricing algorithm to yield the final
+    price comparison response.
+    """
+    try:
+        image_instance = Image.objects.get(image_id=image_id)
+    except Image.DoesNotExist:
+        return Response(
+            {"status": "error", "message": "Image not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if not image_instance.processed_path:
+        return Response(
+            {"status": "error", "message": "Image needs preprocessing first"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    abs_path = str(settings.MEDIA_ROOT / image_instance.processed_path)
+
+    # 1. Run inference to identify the product query
+    try:
+        prediction_result = predict_product_from_path(abs_path)
+        
+        # Build query from keywords or category
+        query = prediction_result.get('category', '').replace('_', ' ')
+        if prediction_result.get('keywords') and len(prediction_result['keywords']) > 0:
+             query = prediction_result['keywords'][0]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({"status": "error", "message": "Failed to recognize product"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # 2. Invoke the Web Scrapers
+    try:
+        raw_results = search_all_platforms(query)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({"status": "error", "message": "Scraping engines failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # 3. Aggregate and Score
+    agg_result = aggregate_prices(query, [raw_results])
+    
+    # Absolute URL for fallback product image
+    default_img = request.build_absolute_uri(image_instance.file.url)
+
+    # If no matches, yield empty success list
+    if not agg_result.get("matched_products"):
+         return Response({
+             "product": {"name": query, "image": default_img},
+             "summary": {},
+             "offers": []
+         }, status=status.HTTP_200_OK)
+
+    # 4. Map the internal aggregator schema to the external API response contract
+    matched = agg_result["matched_products"][0]
+    best_store = matched.get("best_overall_offer", {}).get("store")
+    best_url = matched.get("best_overall_offer", {}).get("product_url")
+    
+    mapped_offers = []
+    for o in matched.get("offers", []):
+        # We manually verify if this listing object matches the best_overall_offer node
+        is_best = (o.get('platform') == best_store and o.get('product_url') == best_url)
+        
+        mapped_offers.append({
+             "store": o.get('platform', 'Unknown'),
+             "price": o.get('price', 0.0),
+             "shipping": o.get('shipping_cost', 0.0),
+             "final_price": (o.get('price') or 0.0) + (o.get('shipping_cost') or 0.0),
+             "availability": o.get('availability', 'Unknown'),
+             "seller_rating": o.get('rating'),
+             "product_url": o.get('product_url', '#'),
+             "image_url": o.get('image_url') or default_img,
+             "is_best_deal": is_best
+        })
+        
+    prices_stats = matched.get("price_stats", {})
+    response_data = {
+         "product": {
+             "name": query,
+             "image": default_img
+         },
+         "summary": {
+             "lowest_price": prices_stats.get("lowest"),
+             "highest_price": prices_stats.get("highest"),
+             "average_price": prices_stats.get("average")
+         },
+         "offers": mapped_offers
+    }
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+class ComparePricesAPIView(APIView):
+    """
+    API View to get price comparisons for a specific product name.
+    Utilizes Redis caching to avoid redundant scraping.
+    """
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='product', description='Product name to search for', required=True, type=str),
+            OpenApiParameter(name='page', description='Page number', required=False, type=int),
+            OpenApiParameter(name='page_size', description='Number of results per page', required=False, type=int),
+        ],
+        description="Trigger scraping pipeline if no recent cached result exists, and return normalized JSON response.",
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT}
+    )
+    def get(self, request):
+        product_name = request.query_params.get('product')
+        if not product_name or not product_name.strip():
+            return Response({"error": "product parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        product_name = product_name.strip()
+        cache_key = f"price_compare_v2:{product_name}"
+        cached_data = cache.get(cache_key)
+        
+        if cached_data is not None:
+            logger.info("CACHE_HIT")
+            results = cached_data
+        else:
+            logger.info("CACHE_MISS")
+            try:
+                raw_results = search_all_platforms(product_name)
+                agg_result = aggregate_prices(product_name, [raw_results])
+            except Exception as e:
+                logger.error(f"Scraping/Aggregation failed: {e}")
+                return Response({"error": "Scraping engines failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Extract mapped offers
+            results = []
+            if agg_result.get("matched_products"):
+                matched = agg_result["matched_products"][0]
+                best_store = matched.get("best_overall_offer", {}).get("store")
+                best_url = matched.get("best_overall_offer", {}).get("product_url")
+                
+                for o in matched.get("offers", []):
+                    is_best = (o.get('platform') == best_store and o.get('product_url') == best_url)
+                    results.append({
+                        "platform": o.get('platform', 'Unknown'),
+                        "title": o.get('title', product_name),
+                        "price": float(o.get('price', 0.0) or 0.0),
+                        "currency": o.get('currency', 'USD'),
+                        "product_url": o.get('product_url', '#'),
+                        "image_url": o.get('image_url') or "https://via.placeholder.com/300?text=No+Image"
+                    })
+            
+            # Cache for 15 minutes as per requirements
+            cache.set(cache_key, results, timeout=60 * 15)
+
+        # Pagination
+        paginator = ComparePricesPagination()
+        paginator.product_name = product_name
+        paginated_results = paginator.paginate_queryset(results, request, view=self)
+        
+        if paginated_results is not None:
+            return paginator.get_paginated_response(paginated_results)
+            
+        return Response({
+            "product_name": product_name,
+            "results": results
+        })
+
+
+class PriceHistoryAPIView(APIView):
+    """
+    API View to get product price history.
+    """
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='product_id', description='UUID of the product', required=True, type=str),
+        ],
+        description="Return chronological price history for a given product ID.",
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT}
+    )
+    def get(self, request):
+        product_id = request.query_params.get('product_id')
+        if not product_id:
+            return Response({"error": "product_id parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            session = SessionLocal()
+            product = session.query(Product).filter(Product.product_id == product_id).first()
+            if not product:
+                return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+                
+            prices = session.query(Price).filter(Price.product_id == product_id).order_by(Price.timestamp).all()
+            history = [
+                {
+                    "date": p.timestamp.strftime("%Y-%m-%d"),
+                    "platform": p.store_name,
+                    "price": float(p.price)
+                }
+                for p in prices
+            ]
+        finally:
+            session.close()
+            
+        return Response({
+            "product_id": product_id,
+            "history": history
+        })
