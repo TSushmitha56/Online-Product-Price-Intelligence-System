@@ -1,0 +1,26 @@
+# ─── Frontend Docker ignore ───────────────────────────────────────────────────
+
+# Dependencies (installed during Docker build)
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output (generated during Docker build)
+dist/
+
+# Test artifacts
+coverage/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Git
+.git/
+.gitignore

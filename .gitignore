@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv
+dt_venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.env.local
+.env.*.local
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Django
+db.sqlite3
+.env
+.env.*
+!.env.example
+!.env.production.example
+staticfiles/
+# media/ — intentionally NOT ignored so demo screenshots/video are tracked
+
+# Environment
+.vscode-settings.json
+
+# Docker
+.docker/
+
+# SSL certificates (never commit private keys)
+nginx/ssl/
+
+# Production env (extra safety)
+*.env.production
+.env.production

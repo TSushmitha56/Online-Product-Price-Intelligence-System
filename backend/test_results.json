@@ -1,0 +1,209 @@
+{
+    "summary": {
+        "total_images": 20,
+        "avg_inference_time": 0.14444491863250733,
+        "model": "EfficientNet-B0 (CPU)"
+    },
+    "results": [
+        {
+            "image": "test_shoes_0.jpg",
+            "expected": "shoes",
+            "predicted": "kite",
+            "confidence": 0.0316,
+            "time_sec": 0.597,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_watches_1.jpg",
+            "expected": "watches",
+            "predicted": "kite",
+            "confidence": 0.0786,
+            "time_sec": 0.143,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bottles_2.jpg",
+            "expected": "bottles",
+            "predicted": "kite",
+            "confidence": 0.0677,
+            "time_sec": 0.124,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bags_3.jpg",
+            "expected": "bags",
+            "predicted": "matchstick",
+            "confidence": 0.0183,
+            "time_sec": 0.2,
+            "keywords": [
+                "matchstick"
+            ]
+        },
+        {
+            "image": "test_phones_4.jpg",
+            "expected": "phones",
+            "predicted": "vulture",
+            "confidence": 0.0605,
+            "time_sec": 0.173,
+            "keywords": [
+                "vulture"
+            ]
+        },
+        {
+            "image": "test_shoes_5.jpg",
+            "expected": "shoes",
+            "predicted": "kite",
+            "confidence": 0.0241,
+            "time_sec": 0.257,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_watches_6.jpg",
+            "expected": "watches",
+            "predicted": "kite",
+            "confidence": 0.0419,
+            "time_sec": 0.177,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bottles_7.jpg",
+            "expected": "bottles",
+            "predicted": "kite",
+            "confidence": 0.0501,
+            "time_sec": 0.187,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bags_8.jpg",
+            "expected": "bags",
+            "predicted": "kite",
+            "confidence": 0.0775,
+            "time_sec": 0.191,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_phones_9.jpg",
+            "expected": "phones",
+            "predicted": "kite",
+            "confidence": 0.0358,
+            "time_sec": 0.116,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_shoes_10.jpg",
+            "expected": "shoes",
+            "predicted": "kite",
+            "confidence": 0.0415,
+            "time_sec": 0.068,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_watches_11.jpg",
+            "expected": "watches",
+            "predicted": "vulture",
+            "confidence": 0.0431,
+            "time_sec": 0.079,
+            "keywords": [
+                "vulture"
+            ]
+        },
+        {
+            "image": "test_bottles_12.jpg",
+            "expected": "bottles",
+            "predicted": "kite",
+            "confidence": 0.0433,
+            "time_sec": 0.049,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bags_13.jpg",
+            "expected": "bags",
+            "predicted": "kite",
+            "confidence": 0.0389,
+            "time_sec": 0.06,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_phones_14.jpg",
+            "expected": "phones",
+            "predicted": "kite",
+            "confidence": 0.0734,
+            "time_sec": 0.067,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_shoes_15.jpg",
+            "expected": "shoes",
+            "predicted": "kite",
+            "confidence": 0.0632,
+            "time_sec": 0.075,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_watches_16.jpg",
+            "expected": "watches",
+            "predicted": "kite",
+            "confidence": 0.0465,
+            "time_sec": 0.084,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bottles_17.jpg",
+            "expected": "bottles",
+            "predicted": "kite",
+            "confidence": 0.061,
+            "time_sec": 0.132,
+            "keywords": [
+                "kite"
+            ]
+        },
+        {
+            "image": "test_bags_18.jpg",
+            "expected": "bags",
+            "predicted": "vulture",
+            "confidence": 0.0301,
+            "time_sec": 0.057,
+            "keywords": [
+                "vulture"
+            ]
+        },
+        {
+            "image": "test_phones_19.jpg",
+            "expected": "phones",
+            "predicted": "kite",
+            "confidence": 0.0509,
+            "time_sec": 0.053,
+            "keywords": [
+                "kite"
+            ]
+        }
+    ]
+}
